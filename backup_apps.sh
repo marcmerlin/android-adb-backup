@@ -7,8 +7,7 @@
 
 set -e   # fail early
 
-DRY="echo"
-if [[ "$1" == "-f" ]]; then shift;  DRY="" ; fi
+if [[ "$1" == "-d" ]]; then shift;  DRY="echo" ; fi
 DRY=""
 
 A="adb -d"
@@ -23,6 +22,11 @@ BUILD=`$A shell getprop ro.build.id | tr -d '\r'`
 
 DATE=`date +%F`
 DIR="${HW}_${DATE}_${BUILD}"
+if test -d "$DIR"; then
+    echo "$DIR already exists, exiting"
+    exit 2
+fi
+
 echo "### Creating dir $DIR"
 $DRY mkdir -p $DIR
 $DRY cd $DIR
