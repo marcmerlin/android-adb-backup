@@ -2,76 +2,94 @@
 
 # License; Apache-2
 
-# Originally from Raphael Moll
-# Untested as of 2017/12, but should probably work as is or with little modification
-# USE AT YOUR OWN RISK
-# For a safer per package restore, try restore_single_appdata.sh
+# Tested/Fixed for Android O by marc_soft@merlins.org 2017/12
+# Added support for filenames/directories with spaces
+
 
 set -e   # fail early
 
-A=adb
+A="adb -d"
 
 DRY="echo"
-OP=""
-
+if [[ "$1" == "--doit" ]]; then DRY=""; shift; fi
 DIR="$1"
 shift
+
 if [[ ! -d "$DIR" ]]; then
-	echo "Usage: $0 <date-dir> [-f] [--apk|--data]"
-	echo "Must be created with ./backup_apps.sh"
-    echo "-apk: install apk only, not data"
+	echo "Usage: $0 [--doit] <date-dir>"
+	echo "Must be created with ./backup_system_apps.sh"
+	echo "Will be dry run by default unless --doit is given"
 	exit 2
 fi
 
-if [[ "$1" == "-f" ]]; then DRY=""; shift; fi
-if [[ "$1" == "--apk" || "$1" == "--data" ]]; then OP="$1"; shift; fi
-
-
 cd $DIR
 
+if [ $# -gt 0 ]; then
+	APPS="$@"
+	echo "## Push apps: $APPS"
+else
+	APPS=$(echo data/*)
+	echo "## Push all apps in $DIR: $APPS"
+fi
+
 echo "## Restart adb as root"
-$A root
-sleep 3
+$DRY $A root
+$DRY sleep 3
 
-echo "## Push apps"
-
-for i in app/*.apk ; do
-    if [[ -e $i ]]; then
-        apk=${i/app\//}
-        
-        # name of apk is <packagename>-<number.apk
-        name=${apk/.apk/}
-        name=${name%%-[0-9]*}
-	# /data/app/org.openintents.filemanager-0lGhieUsRc8H0LTGv2DyYQ==
-	# ccc71.at.free-cEQUrmG-8tLASwXXJi-03Q==
-	name=${name%%-*==}
-        
-        echo $name
-        
-        if [[ -z "$OP" || "$OP" == "--apk" ]]; then
-            echo "## install $name"
-            $DRY $A install -r app/$apk
-        fi
-        
-        if [[ -z "$OP" || "$OP" == "--data" ]]; then
-            if [[ -d data/$name ]]; then
-            
-                # figure out current app user id
-                L=`$A shell ls -l /data/data | grep $name`
-                ID=`echo $L | cut -f 2 -d " "`
-                echo "User id => $ID"
-                
-                $DRY $A push data/$name /data/data/$name
-                for j in `find data/$name -printf "%P\n"`; do
-                    if [[ -e "data/$name/$j" ]]; then
-                        $DRY $A shell chown $ID.$ID /data/data/$name/$j
-                    fi
-                done
-            else
-                echo "  Missing data/$name"
-            fi
-        fi
-    fi
+echo "## Install missing apps"
+for i in $APPS
+do
+	APP="$(basename $i)"
+	if ! $A shell ls -d -l /data/data/$APP &>/dev/null; then
+		echo "$APP not installed, trying to install it"
+		(set -vx; $DRY $A install app/${APP}*/base.apk )
+	fi
 done
 
-[[ -n $DRY ]] && echo "==== This is DRY MODE. Use -f to actually copy."
+echo "## Stop Runtime" && $DRY $A shell stop
+
+for i in $APPS
+do
+	APP="$(basename $i)"
+	# figure out current app user id
+	L=( $($A shell ls -d -l /data/data/$APP 2>/dev/null) ) || :
+	# drwx------ 10 u0_a240 u0_a240 4096 2017-12-10 13:45 .
+	# => return u0_a240
+	ID=${L[2]}
+
+	if [[ -z $ID ]]; then
+	    echo "Error: $APP still not installed"
+	    $DRY exit 2
+	fi
+
+	echo "APP User id is $ID"
+
+	if ! $DRY $A shell "mkdir /data/data/$APP/.backup"; then
+		echo "ERROR: Cannot create backup dir, skipping app $APP"
+		continue
+	fi
+	echo "Backup $name data to /data/data/$APP/.backup"
+        $DRY $A shell "mv /data/data/$APP/{*,.backup}"
+	$DRY $A push "data/$APP" /data/data/
+
+	(cd "data/$APP"
+	# support directories like "Crash Reports"
+	export IFS="
+	"
+	for j in `find . -printf "%P\n"`; 
+	do
+	    if [[ -d "$DIR/$j" ]]; then
+		$DRY $A shell "mkdir -p \"/data/data/$APP/$j\""
+	    fi
+	    #echo "Fixing permissions on $j"
+	    #test -z "$DRY" && echo $A shell chown $ID.$ID "/data/data/$APP/$j"
+	    #$DRY $A shell chown $ID.$ID "\"/data/data/$APP/$j\""
+	done )
+
+	$DRY $A shell "set -vx; chown -R $ID.$ID /data/data/$APP/*" || true
+	echo
+done
+
+echo "## Restart Runtime" && $DRY $A shell start
+[[ -n $DRY ]] && echo "==== This is DRY MODE. Use --doit to actually copy."
+
