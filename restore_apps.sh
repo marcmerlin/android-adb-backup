@@ -9,6 +9,7 @@
 set -e   # fail early
 
 A="adb -d"
+OLDIFS="$IFS"
 
 DRY="echo"
 if [[ "$1" == "--doit" ]]; then DRY=""; shift; fi
@@ -42,10 +43,12 @@ do
 	APP="$(basename $i)"
 	if ! $A shell ls -d -l /data/data/$APP &>/dev/null; then
 		echo "$APP not installed, trying to install it"
-		(set -vx; $DRY $A install app/${APP}*/base.apk )
+		(set -vx; $DRY $A install app/${APP}-*/base.apk )
 	fi
 done
 
+echo
+echo "## Now installing app data"
 echo "## Stop Runtime" && $DRY $A shell stop
 
 for i in $APPS
@@ -65,26 +68,28 @@ do
 	echo "APP User id is $ID"
 
 	if ! $DRY $A shell "mkdir /data/data/$APP/.backup"; then
-		echo "ERROR: Cannot create backup dir, skipping app $APP"
+		echo "ERROR: Cannot create backup dir, skipping app data restore of $APP"
 		continue
 	fi
-	echo "Backup $name data to /data/data/$APP/.backup"
-        $DRY $A shell "mv /data/data/$APP/{*,.backup}"
+	echo "Backup $APP data to /data/data/$APP/.backup"
+        $DRY $A shell "mv /data/data/$APP/{*,.backup}" || true
 	$DRY $A push "data/$APP" /data/data/
 
-	(cd "data/$APP"
 	# support directories like "Crash Reports"
 	export IFS="
 	"
-	for j in `find . -printf "%P\n"`; 
+	for j in `find data/$APP -printf "%P\n"`
 	do
-	    if [[ -d "$DIR/$j" ]]; then
+  	    export IFS="$OLDIFS"
+	    if [[ -d "data/$APP/$j" ]]; then
+		echo "re-creating empty dir /data/data/$APP/$j"
 		$DRY $A shell "mkdir -p \"/data/data/$APP/$j\""
 	    fi
 	    #echo "Fixing permissions on $j"
 	    #test -z "$DRY" && echo $A shell chown $ID.$ID "/data/data/$APP/$j"
 	    #$DRY $A shell chown $ID.$ID "\"/data/data/$APP/$j\""
-	done )
+	done
+	export IFS="$OLDIFS"
 
 	$DRY $A shell "set -vx; chown -R $ID.$ID /data/data/$APP/*" || true
 	echo

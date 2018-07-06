@@ -7,6 +7,7 @@
 set -e   # fail early
 
 A="adb -d"
+OLDIFS="$IFS"
 
 DRY="echo"
 if [[ "$1" == "--doit" ]]; then DRY=""; shift; fi
@@ -32,8 +33,9 @@ fi
 
 
 echo "## Restart adb as root"
-$A root
-sleep 3
+$DRY $A root
+$DRY sleep 3
+echo "## Stop Runtime" && $DRY $A shell stop
 
 for i in $APPS
 do
@@ -56,22 +58,26 @@ do
                 $DRY $A shell "mv /data/data/$APP/{*,.backup}"
                 $DRY $A push data/$APP /data/data/
 
-		(cd "data/$APP"
 		# support directories like "Crash Reports"
 		export IFS="
 		"
-		for j in `find . -printf "%P\n"`; 
+		for j in `find data/$APP -printf "%P\n"`
 		do
-		    if [[ -d "$DIR/$j" ]]; then
+		    export IFS="$OLDIFS"
+		    if [[ -d "data/$APP/$j" ]]; then
+			echo "re-creating empty dir /data/data/$APP/$j"
 			$DRY $A shell "mkdir -p \"/data/data/$APP/$j\""
 		    fi
 		    #echo "Fixing permissions on $j"
 		    #test -z "$DRY" && echo $A shell chown $ID.$ID "/data/data/$APP/$j"
 		    #$DRY $A shell chown $ID.$ID "\"/data/data/$APP/$j\""
-		done )
+		done
+		export IFS="$OLDIFS"
 
-                $DRY $A shell "chown -R $ID.$ID /data/data/$APP/*" || true
+		$DRY $A shell "set -vx; chown -R $ID.$ID /data/data/$APP/*" || true
+		echo
 	fi
 done
 
+echo "## Restart Runtime" && $DRY $A shell start
 [[ -n $DRY ]] && echo "==== This is DRY MODE. Use --doit to actually copy."
