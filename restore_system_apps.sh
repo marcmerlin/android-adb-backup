@@ -6,6 +6,13 @@
 
 set -e   # fail early
 
+cat <<EOF
+WARNING: restoring random system apps can make things worse
+You may want to prune the list of apps to restore
+^C to exit, ENTER to continue
+EOF
+read
+
 A="adb -d"
 OLDIFS="$IFS"
 
