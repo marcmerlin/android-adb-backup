@@ -15,16 +15,14 @@ As an example, google userdebug builds give you adb root, but will not give you 
 way to run android apps as root, which TiBackup requires.
 
 Intended usage:
-1) run backup_apps.sh on the source device
-2) manually look at which apps didn't get restored or have their data missing and run
-restore_single_appdata.sh on them.
-3) if the apk is missing, you can run adb install backup/dir/base.apk  with the destination
-device
+1) run backup_apps.sh and backup_system_apps.sh on the source device
+2) then run restore_apps.sh against the destination device. You can optionally give one or more
+package names if you don't want to restore all packages
+3) You can optionally run restore_system_apps.sh but be warned that this is only reasonably safe
+if the source and destination devices are the same, and you delete the source device after you're done
+Even then, you may want to skip this step unless it is useful to your use case.
 
-restore_apps.sh would restore all app data plus their apks, but it's probably not very
-safe to use since not all apps ought to be restored/migrated that way (some have unique
-IDs that end up causing problems if you use the same unique ID on different devices). 
-I have left this script as a starter of something that almost works should you need such
-a thing.
+Keep in mind that even with step #2, restoring all apps may cause issues as some have unique
+IDs that end up causing problems if you use the same unique ID on different devices. 
 
 Credit goes to Raphael Moll for the original scripts.
