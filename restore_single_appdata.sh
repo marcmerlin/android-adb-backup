@@ -9,6 +9,9 @@
 # for i in ch.ssigno.zoneminder com.aa.android com.alexvas.dvr.pro com.amazon.drive com.amazon.kindle com.amazon.mShop.android.shopping com.amazon.now com.audible.application com.camsam.plus com.crosschasm.evchargerlocator com.ds.avare com.eventbrite.attendee com.fltplan.go com.frogsparks.mytrails com.fvd com.garmin.android.apps.connectmobile com.gaudiumsoft.voiceimport com.geeksville.andropilot com.goodrx com.google.android.apps.aiuto com.google.android.apps.authenticator2 com.lifx.lifx com.nest.android com.pas.webcam com.rainmachine com.sony.playmemories.mobile com.southwestairlines.mobile com.teslamotors.tesla com.trailbehind.android.gaiagps.pro com.ubercab com.united.mobile.android com.wf.wellsfargomobile me.lyft.android org.mavlink.qgroundcontrol us.avnav.efb
 # 
 
+echo "Please use restore_apps.sh <dir> appname instead of this program, left for posterity"
+exit 0
+
 set -e   # fail early
 
 A=adb
