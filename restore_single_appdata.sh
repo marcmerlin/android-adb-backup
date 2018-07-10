@@ -89,3 +89,4 @@ for j in `find "$DIR" -printf "%P\n"`; do
 done
 
 [[ -n $DRY ]] && echo "=== This is DRY MODE. Use -f to actually copy."
+echo "You will want to fix securelinux perms with: restorecon -FRDv /data/data"

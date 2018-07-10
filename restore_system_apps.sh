@@ -88,3 +88,4 @@ done
 
 echo "## Restart Runtime" && $DRY $A shell start
 [[ -n $DRY ]] && echo "==== This is DRY MODE. Use --doit to actually copy."
+echo "You will want to fix securelinux perms with: restorecon -FRDv /data/data"
