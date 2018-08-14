@@ -18,10 +18,18 @@ shift
 
 if [[ ! -d "$DIR" ]]; then
 	echo "Usage: $0 [--doit] <date-dir>"
-	echo "Must be created with ./backup_system_apps.sh"
+	echo "Must be created with ./backup_apps.sh"
 	echo "Will be dry run by default unless --doit is given"
 	exit 2
 fi
+
+cat <<EOF
+WARNING: restoring random system apps is quite likely to make things worse
+unless you are copying between 2 identical devices.
+You probably want to mv backupdir/data/{com.android,com.google}* /backup/location
+This will cause this script not to try and restore system app data
+
+EOF
 
 cd $DIR
 
@@ -97,4 +105,4 @@ done
 
 echo "## Restart Runtime" && $DRY $A shell start
 [[ -n $DRY ]] && echo "==== This is DRY MODE. Use --doit to actually copy."
-
+echo "You will want to fix securelinux perms with: restorecon -FRDv /data/data"

@@ -6,12 +6,14 @@
 
 set -e   # fail early
 
+echo "This is an old script, try restore_apps.sh instead"
+exit
+
 cat <<EOF
 WARNING: restoring random system apps can make things worse
 You may want to prune the list of apps to restore
 ^C to exit, ENTER to continue
 EOF
-read
 
 A="adb -d"
 OLDIFS="$IFS"
@@ -56,14 +58,14 @@ do
 		# => return u0_a240
 		ID=${L[2]}
                 echo "User id => $ID"
-                
+
                 if ! $A shell "mkdir /data/data/$APP/.backup"; then
 			echo "ERROR: Cannot create backup dir, skipping app $APP"
 			continue
 		fi
 		echo "Backup $APP data to /data/data/$APP/.backup"
-                $DRY $A shell "mv /data/data/$APP/{*,.backup}"
-                $DRY $A push data/$APP /data/data/
+		$DRY $A shell "mv /data/data/$APP/{*,.backup}"
+		$DRY $A push data/$APP /data/data/
 
 		# support directories like "Crash Reports"
 		export IFS="
