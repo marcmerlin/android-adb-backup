@@ -3,17 +3,16 @@
 # License; Apache-2
 
 # Tested/Fixed for Android O by marc_soft@merlins.org 2017/12
+# Added support for filenames/directories with spaces
 
 set -e   # fail early
-
-echo "This is an old script, try restore_apps.sh instead"
-exit
 
 cat <<EOF
 WARNING: restoring random system apps can make things worse
 You may want to prune the list of apps to restore
 ^C to exit, ENTER to continue
 EOF
+read
 
 A="adb -d"
 OLDIFS="$IFS"
@@ -21,7 +20,6 @@ OLDIFS="$IFS"
 DRY="echo"
 if [[ "$1" == "--doit" ]]; then DRY=""; shift; fi
 DIR="$1"
-shift
 
 if [[ ! -d "$DIR" ]]; then
 	echo "Usage: $0 [--doit] <date-dir>"
@@ -29,6 +27,8 @@ if [[ ! -d "$DIR" ]]; then
 	echo "Will be dry run by default unless --doit is given"
 	exit 2
 fi
+shift
+
 
 cd $DIR
 
@@ -39,7 +39,6 @@ else
 	APPS=$(echo data/*)
 	echo "## Push all apps in $DIR: $APPS"
 fi
-
 
 echo "## Restart adb as root"
 $DRY $A root
@@ -53,39 +52,39 @@ do
 	# figure out current app user id
 	if ! L=( $($A shell ls -d -l /data/data/$APP) ); then
 		echo "ERROR: cannot restore $APP, not installed on device"
-	else
-		# drwx------ 10 u0_a240 u0_a240 4096 2017-12-10 13:45 .
-		# => return u0_a240
-		ID=${L[2]}
-                echo "User id => $ID"
-
-                if ! $A shell "mkdir /data/data/$APP/.backup"; then
-			echo "ERROR: Cannot create backup dir, skipping app $APP"
-			continue
-		fi
-		echo "Backup $APP data to /data/data/$APP/.backup"
-		$DRY $A shell "mv /data/data/$APP/{*,.backup}"
-		$DRY $A push data/$APP /data/data/
-
-		# support directories like "Crash Reports"
-		export IFS="
-		"
-		for j in `find data/$APP -printf "%P\n"`
-		do
-		    export IFS="$OLDIFS"
-		    if [[ -d "data/$APP/$j" ]]; then
-			echo "re-creating empty dir /data/data/$APP/$j"
-			$DRY $A shell "mkdir -p \"/data/data/$APP/$j\""
-		    fi
-		    #echo "Fixing permissions on $j"
-		    #test -z "$DRY" && echo $A shell chown $ID.$ID "/data/data/$APP/$j"
-		    #$DRY $A shell chown $ID.$ID "\"/data/data/$APP/$j\""
-		done
-		export IFS="$OLDIFS"
-
-		$DRY $A shell "set -vx; chown -R $ID.$ID /data/data/$APP/*" || true
-		echo
+		continue
 	fi
+	# drwx------ 10 u0_a240 u0_a240 4096 2017-12-10 13:45 .
+	# => return u0_a240
+	ID=${L[2]}
+	echo "User id => $ID"
+
+	if ! $A shell "mkdir /data/data/$APP/.backup"; then
+		echo "ERROR: Cannot create backup dir, skipping app $APP"
+		continue
+	fi
+	echo "Backup $APP data to /data/data/$APP/.backup"
+        $DRY $A shell "mv /data/data/$APP/{*,.backup}" || true
+	$DRY $A push "data/$APP" /data/data/
+
+	# support directories like "Crash Reports"
+	export IFS="
+	"
+	for j in `find data/$APP -printf "%P\n"`
+	do
+	    export IFS="$OLDIFS"
+	    if [[ -d "data/$APP/$j" ]]; then
+		echo "re-creating empty dir /data/data/$APP/$j"
+		$DRY $A shell "mkdir -p \"/data/data/$APP/$j\""
+	    fi
+	    #echo "Fixing permissions on $j"
+	    #test -z "$DRY" && echo $A shell chown $ID.$ID "/data/data/$APP/$j"
+	    #$DRY $A shell chown $ID.$ID "\"/data/data/$APP/$j\""
+	done
+	export IFS="$OLDIFS"
+
+	$DRY $A shell "set -vx; chown -R $ID.$ID /data/data/$APP/*" || true
+	echo
 done
 
 echo "## Restart Runtime" && $DRY $A shell start

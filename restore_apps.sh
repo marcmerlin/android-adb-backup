@@ -5,24 +5,16 @@
 # Tested/Fixed for Android O by marc_soft@merlins.org 2017/12
 # Added support for filenames/directories with spaces
 
-
 set -e   # fail early
 
 A="adb -d"
 OLDIFS="$IFS"
 
 DRY="echo"
-if [[ "$1" == "--doit" ]]; then DRY=""; shift; fi
-DIR="$1"
-shift
-
-if [[ ! -d "$DIR" ]]; then
-	echo "Usage: $0 [--doit] <date-dir>"
-	echo "Must be created with ./backup_apps.sh"
-	echo "Will be dry run by default unless --doit is given"
-	exit 2
-fi
-
+if [[ "$1" == "--doit" ]]; then 
+	DRY="" 
+	shift
+else
 cat <<EOF
 WARNING: restoring random system apps is quite likely to make things worse
 unless you are copying between 2 identical devices.
@@ -30,6 +22,18 @@ You probably want to mv backupdir/data/{com.android,com.google}* /backup/locatio
 This will cause this script not to try and restore system app data
 
 EOF
+sleep 3
+fi
+DIR="$1"
+
+if [[ ! -d "$DIR" ]]; then
+	echo "Usage: $0 [--doit] <date-dir>"
+	echo "Must be created with ./backup_apps.sh"
+	echo "Will be dry run by default unless --doit is given"
+	exit 2
+fi
+shift
+
 
 cd $DIR
 
@@ -62,6 +66,7 @@ echo "## Stop Runtime" && $DRY $A shell stop
 for i in $APPS
 do
 	APP="$(basename $i)"
+	echo "Attempting to restore data for $APP"
 	# figure out current app user id
 	L=( $($A shell ls -d -l /data/data/$APP 2>/dev/null) ) || :
 	# drwx------ 10 u0_a240 u0_a240 4096 2017-12-10 13:45 .
@@ -88,7 +93,7 @@ do
 	"
 	for j in `find data/$APP -printf "%P\n"`
 	do
-  	    export IFS="$OLDIFS"
+	    export IFS="$OLDIFS"
 	    if [[ -d "data/$APP/$j" ]]; then
 		echo "re-creating empty dir /data/data/$APP/$j"
 		$DRY $A shell "mkdir -p \"/data/data/$APP/$j\""
