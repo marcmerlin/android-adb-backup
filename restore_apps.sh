@@ -45,8 +45,8 @@ else
 	echo "## Push all apps in $DIR: $APPS"
 fi
 
-echo "## Restart adb as non-root"
-$DRY $A unroot
+echo "## Restart adb as root"
+$DRY $A root
 $DRY sleep 3
 
 echo "## Install missing apps"
@@ -54,9 +54,10 @@ for i in $APPS
 do
 	APP="$(basename $i)"
 	echo "Installing $i"
+	# FIXME this does not work because of adb unroot
 	if ! $A shell ls -d -l /data/data/$APP &>/dev/null; then
 	    #echo "$APP not installed, trying to install it"
-	    (set -vx; $DRY $A install app/${APP}-*/base.apk )
+	    (set -vx; $A unroot; $DRY $A install-multiple app/*/${APP}-*/*.apk; $A root )
 	else
 	    echo "$APP already installed, skipping install"
 	fi
