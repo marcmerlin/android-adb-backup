@@ -1,0 +1,15 @@
+#!/bin/bash
+
+adb root
+sleep 3
+dest="/tmp/apk.$$"
+mkdir "$dest"
+
+for i in $(adb shell 'ls /data/app/')
+do
+	echo $i
+	adb pull "/data/app/$i/base.apk" "$dest/$i.apk"
+done
+
+echo "please connect target device and run
+cd $dest; for i in *.apk; do echo \$i; adb install \"\$i\"; done"

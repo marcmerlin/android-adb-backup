@@ -39,23 +39,27 @@ echo "## Pull apps"
 # Asec is gone in O?
 #( mkdir -p asec ; cd asec ; $DRY adb pull /mnt/asec . || echo "### Failed to get /mnt/asec" )
 
-for APP in app app-private; do
-
-	for i in `$A shell ls /data/$APP | tr -d "\r" ` ; do
-		echo $i
-		$DRY $A pull /data/$APP/$i $APP/$i
-		d=${i%.apk}
-		d=${d%.zip}
-		d=${d%-[1-9]}
-		# /data/app/org.openintents.filemanager-0lGhieUsRc8H0LTGv2DyYQ==
-		# ccc71.at.free-cEQUrmG-8tLASwXXJi-03Q==
-		d=${d%%-*==}
-		$DRY mkdir -p data/$d
-		#$DRY $A pull /data/data/$d data/$d || echo "### Failed for $d"
-		$DRY $A pull /data/data/$d data || echo "### Failed for $d"
-	done
-
-done
+# This does not work anymore:
+#for APP in app app-private; do
+#
+#	for i in `$A shell ls /data/$APP | tr -d "\r" ` ; do
+#		echo $i
+#		$DRY $A pull /data/$APP/$i $APP/$i
+#		d=${i%.apk}
+#		d=${d%.zip}
+#		d=${d%-[1-9]}
+#		# /data/app/org.openintents.filemanager-0lGhieUsRc8H0LTGv2DyYQ==
+#		# ccc71.at.free-cEQUrmG-8tLASwXXJi-03Q==
+#		d=${d%%-*==}
+#		$DRY mkdir -p data/$d
+#		#$DRY $A pull /data/data/$d data/$d || echo "### Failed for $d"
+#		$DRY $A pull /data/data/$d data || echo "### Failed for $d"
+#	done
+#
+#done
+adb pull /data/data
+adb pull /data/app
+rm -rf data/*/cache/*
 
 echo "## Restart Runtime" && $DRY $A shell start
 [[ $DRY ]] && echo "DRY RUN ONLY! Use $0 -f to actually download."

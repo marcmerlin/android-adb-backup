@@ -2,8 +2,15 @@
 
 # License; Apache-2
 
-# Tested/Fixed for Android O by marc_soft@merlins.org 2017/12
+# Tested/Fixed for Android S by marc_soft@merlins.org 2022/01
 # Added support for filenames/directories with spaces
+
+# Run a restore like this:
+# ./restore_apps.sh --doit barbet_2022-01-12_SP2A.220107.001 org.droidplanner.services.android org.nick.kanjirecognizer org.opencpn.opencpn_free org.subsurface org.thoughtcrime.securesms org.videolan.vlc
+# or
+# ./restore_apps.sh --doit barbet_2022-01-12_SP2A.220107.001 `cat app_data_to_restore.txt`
+#
+
 
 set -e   # fail early
 
@@ -52,20 +59,16 @@ $DRY sleep 3
 echo "## Install missing apps"
 for i in $APPS
 do
-	APP="$(basename $i)"
-	echo "Installing $i"
-	# FIXME this does not work because of adb unroot
-	if ! $A shell ls -d -l /data/data/$APP &>/dev/null; then
+	echo "Installing $APP"
+	#if ! $A shell ls -d -l /data/data/$APP &>/dev/null; then
+	if ! $A shell ls -d -l /data/app/*/$APP* &>/dev/null; then
 	    #echo "$APP not installed, trying to install it"
-	    (set -vx; $A unroot; $DRY $A install-multiple app/*/${APP}-*/*.apk; $A root )
+	    #(set -vx; $A unroot; $DRY $A install-multiple app/*/${APP}-*/*.apk; $A root )
+	    (set -vx; $DRY $A install-multiple app/*/${APP}-*/*.apk )
 	else
 	    echo "$APP already installed, skipping install"
 	fi
 done
-
-echo "## Restart adb as root"
-$DRY $A root
-$DRY sleep 3
 
 echo
 echo "## Now installing app data"
