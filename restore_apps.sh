@@ -56,8 +56,8 @@ echo "## Restart adb as root"
 $DRY $A root
 $DRY sleep 3
 
-echo "## Install missing apps"
-for i in $APPS
+echo "## Install missing apps: $APPS"
+for APP in $APPS
 do
 	echo "Installing $APP"
 	#if ! $A shell ls -d -l /data/data/$APP &>/dev/null; then
@@ -85,8 +85,9 @@ do
 	ID=${L[2]}
 
 	if [[ -z $ID ]]; then
+	    adb shell ls -d -l /data/data/$APP
 	    echo "Error: $APP still not installed"
-	    $DRY exit 2
+	    exit 2
 	fi
 
 	echo "APP User id is $ID"
@@ -97,7 +98,10 @@ do
 	fi
 	echo "Backup $APP data to /data/data/$APP/.backup"
         $DRY $A shell "mv /data/data/$APP/{*,.backup}" || true
-	$DRY $A push "data/$APP" /data/data/
+	if ! $DRY $A push "data/$APP" /data/data/; then
+	    echo "Source data backup incomplete data/$APP missing in `pwd`"
+	    exit
+	fi
 
 	# support directories like "Crash Reports"
 	export IFS="
